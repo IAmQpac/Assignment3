@@ -1,20 +1,15 @@
 public class InvalidException extends Exception{
-    String message = "Error: Input row cannot be parsed due to missing information";
+    String message;
 
 
     // default constructor
     public InvalidException(){
+        super("Error: Input row cannot be parsed due to missing information");
     }
 
     // constructor with desired message
     public InvalidException(String message){
-        this.message=message;
+        super(message);
     }
 
-    @Override
-    public String toString() {
-        return "InvalidException{" +
-                "message='" + message + '\'' +
-                '}';
-    }
 }

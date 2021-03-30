@@ -1,3 +1,4 @@
+import java.time.temporal.Temporal;
 import java.util.Scanner;
 import java.io.*;
 
@@ -6,26 +7,37 @@ public class CSV2JSON {
 
         File CarRentalRecord = new File("Car Rental Record.csv");
         File CarMaintenanceRecord = new File("Car Maintenance Record.csv");
+        File logFile = new File("log.txt");
 
+
+        Scanner readLogFile = null;
+        PrintWriter writeLogFile = null;
+        try {
+            readLogFile = new Scanner(logFile);
+            writeLogFile = new PrintWriter(logFile);
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not find the log file");
+        }
 
         File[] fileArray = {CarRentalRecord, CarMaintenanceRecord};
 
 
+        //READ
         Scanner readCarRentalRecord = null;
         Scanner readCarMaintenanceRecord = null;
 
         Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
 
+        //WRITE
         PrintWriter writeCarRentalRecord = null;
         PrintWriter writeCarMaintenanceRecord = null;
 
         PrintWriter[] writeArray = {writeCarRentalRecord, writeCarMaintenanceRecord};
 
-
-//        Reading Car rental and Car Maintenance
+        //Reading Car rental and Car Maintenance
         for (int i = 0; i < readArray.length; i++) {
             try {
-                readArray[i] = new Scanner(new FileReader(fileArray[i]));
+                readArray[i] = new Scanner(fileArray[i]);
             } catch (FileNotFoundException e) {
                 System.out.println("Could not open input file " + fileArray[i] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
                 //closing all previews opened files
@@ -36,7 +48,7 @@ public class CSV2JSON {
             }
         }
 
-//        Writing to Car Rental and Car Maintenance
+        //Writing to Car Rental and Car Maintenance
         for (int i = 0; i < writeArray.length; i++) {
             try {
                 writeArray[i] = new PrintWriter(fileArray[i]);
@@ -48,15 +60,215 @@ public class CSV2JSON {
                 System.exit(0);
             }
         }
+
+        //Create tokenizer Array for Car Rental
+        Tokenizer[] carRentalTokenizerArray;
+        carRentalTokenizerArray = CreateTokenizerArray(readCarRentalRecord);
+
+        //Create tokenizer Array for Car Maintenance
+        Tokenizer[] carMaintenanceTokenizerArray;
+        carMaintenanceTokenizerArray = CreateTokenizerArray(readCarMaintenanceRecord);
+
+
+        //DONE IN PROCESSFILESFORVALIDATION
+        //Checking if we miss any attributes:
+        try{
+            for (int i = 0; i < readArray.length; i++) {
+                if (missingAttribute(readArray[i]) == true){
+                    writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
+                    throw new InvalidException();
+                }
+            }
+        }catch (InvalidException e){
+            System.out.println(e);
+        }
+
+
+        //Checking if we miss any data in Car Rental:
+        try{
+            for (int i = 0; i < carRentalTokenizerArray.length; i++) {
+                for (int j = 0; j < carRentalTokenizerArray[i].record.length; j++) {
+                    if (carRentalTokenizerArray[i].record[j].equals("")){
+                        writeLogFile.println(">Missing record: in " + fileArray[0]);
+                        throw new InvalidException("There is record missing in \"+ fileArray[0] +\", we will transfer the rest of the records to JSON.");
+                    }
+                }
+            }
+        } catch (InvalidException e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+
+
+        //Checking if we miss any data in Car Maintenance:
+        try {
+            for (int i = 0; i < carMaintenanceTokenizerArray.length; i++) {
+                for (int j = 0; j < carMaintenanceTokenizerArray[i].record.length; j++) {
+                    if (carMaintenanceTokenizerArray[i].record[j].equals("")){
+                        writeLogFile.println(">Missing record: in " + fileArray[1]);
+                        throw new InvalidException("There is record missing in \"+ fileArray[1] +\", we will transfer the rest of the records to JSON.");
+                    }
+                }
+            }
+        }catch (InvalidException e){
+            e.printStackTrace();
+        }
+
+
+
     }
+
+
+    public static Tokenizer[] CreateTokenizerArray(Scanner read) {
+        //I dont' wanna count the first one.
+        int count=-1;
+        while (read.hasNextLine()){
+           String str = read.nextLine();
+            count++;
+        }
+
+        Tokenizer[] temp = new Tokenizer[count];
+        int i=0;
+        while (read.hasNextLine()){
+            String str = read.nextLine();
+            temp[i] = new Tokenizer(str);
+            i++;
+        }
+
+        for (int j = 0; j < temp.length; j++) {
+            String[] record = temp[i].record;
+            temp[i].fixRecord(record);
+        }
+        return temp;
+    }
+
+
+
+
+    public static boolean missingAttribute(Scanner readFile) {
+        String attributesLine = readFile.nextLine();
+        String[] attributesWords = attributesLine.split(",");
+        int count=0;
+
+        for (int i = 0; i < attributesWords.length; i++) {
+            if (attributesWords[i] == ""){
+                count++;
+            }
+        }
+        if (count > 0 ){
+            return  true;
+        }else return false;
+    }
+
 
 
     //    Processing input files and creating output ones
-    public static void processFilesForValidation() {
+    public static void processFilesForValidation(Scanner read, PrintWriter write, PrintWriter writeLogFile, File logFile) {
+
+        //Checking if we miss any attributes:
+        try{
+            if (missingAttribute(read) == true){
+                writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
+                throw new InvalidException();
+            }
+
+        }catch (InvalidException e){
+            System.out.println(e);
+        }
+
+        //Checking if we miss any data in Car Rental:
+        try{
+            for (int i = 0; i < carRentalTokenizerArray.length; i++) {
+                for (int j = 0; j < carRentalTokenizerArray[i].record.length; j++) {
+                    if (carRentalTokenizerArray[i].record[j].equals("")){
+                        writeLogFile.println(">Missing record: in " + fileArray[0]);
+                        throw new InvalidException("There is record missing in \"+ fileArray[0] +\", we will transfer the rest of the records to JSON.");
+                    }
+                }
+            }
+        } catch (InvalidException e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+
+
 
     }
+
+//    public static boolean validity(Scanner readArray) {
+//        readArray.nextLine(); // throwing the attributes line.
+//        while (readArray.hasNextLine()){
+//            String dataLine = readArray.nextLine();
+//            String[] wordDataLine =  dataLine.split(",");
 //
-//    public static boolean validity() {
+//            //integer array of total words lenght
+//            int[] longIndexOfWordsWithDoubleQuotes = new int[wordDataLine.length];
+//
+//            //for each word
+//            for (int j = 0; j < wordDataLine.length; j++) {
+//
+//                // if the word starts with ", record it's index number
+//                if (wordDataLine[j].charAt(0) == '\"'){
+//                    // index where we START with a "
+//                    //add it to our array at the place of it's same index, we know this is the 1st one
+//                    longIndexOfWordsWithDoubleQuotes[j] = j;
+//
+//                    //going through the rest of the words to determine where is the next "
+//                    for (int k = j+1; k < wordDataLine.length; k++) {
+//                        int wordLenght = wordDataLine[k].length();
+//                        if (wordDataLine[k].charAt(wordLenght-1) == '\"'){
+//
+//                            //endingNumber is where we find the next "
+//                            //add it to our array at the place of it's same index, we know this is the 2nd one
+//                            //this means the words which does not have a " will represent a 0 value in our longIndexOfWordsWithDoubleQuotes array
+//                            longIndexOfWordsWithDoubleQuotes[k] = k;
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//
+//            //This is an array of number where we find indexes of words with ", we know that " will come in pair, the first in the pair has " at the beginning, the 2nd in the pair has the " at the end.
+//            int[] shortIndexOfWordsWithDoubleQuotes = cleanArray(longIndexOfWordsWithDoubleQuotes);
+//
+//        }
 //
 //    }
+
+
+    public static int[] cleanArray (int[] longIndexOfWordsWithDoubleQuotes){
+        int count = 0;
+        for (int i = 0; i < longIndexOfWordsWithDoubleQuotes.length; i++) {
+            if (longIndexOfWordsWithDoubleQuotes[i] !=0 )
+                count++;
+        }
+
+        int[] tempArray = new int[count];
+
+        for (int i = 0; i < tempArray.length; i++) {
+            for (int j = 0; j < longIndexOfWordsWithDoubleQuotes.length; j++) {
+                if (longIndexOfWordsWithDoubleQuotes[j] != 0){
+                    tempArray[i] = longIndexOfWordsWithDoubleQuotes[j];
+                }
+            }
+        }
+        return tempArray;
+    }
+
+
+    public static String[] generateFinalDataLine(int[] shortIndexOfWordsWithDoubleQuotes, String[] wordDataLine){
+        int oldLength = wordDataLine.length;
+        int newLength = oldLength;
+
+
+        for (int i = 0; i < (shortIndexOfWordsWithDoubleQuotes.length/2); i+=2) {
+            newLength = newLength - ( shortIndexOfWordsWithDoubleQuotes[i+1] - shortIndexOfWordsWithDoubleQuotes[i]);
+        }
+        String[] finalDataLine = new String[newLength];
+
+
+
+    }
+
+
 }
