@@ -1,4 +1,3 @@
-import java.time.temporal.Temporal;
 import java.util.Scanner;
 import java.io.*;
 
@@ -26,43 +25,59 @@ public class CSV2JSON {
         Scanner readCarRentalRecord = null;
         Scanner readCarMaintenanceRecord = null;
 
+        //Reading Car rental
+        try {
+            readCarRentalRecord = new Scanner(fileArray[0]);
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not open input file " + fileArray[0] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
+            //closing all previews opened files
+            readCarRentalRecord.close();
+            System.exit(0);
+        }
+        //Reading Car Maintenance
+        try {
+            readCarMaintenanceRecord = new Scanner(fileArray[1]);
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not open input file " + fileArray[1] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
+            //closing all previews opened files
+            readCarMaintenanceRecord.close();
+            readCarRentalRecord.close();
+            System.exit(0);
+        }
+
         Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
+
 
         //WRITE
         PrintWriter writeCarRentalRecord = null;
         PrintWriter writeCarMaintenanceRecord = null;
 
-        PrintWriter[] writeArray = {writeCarRentalRecord, writeCarMaintenanceRecord};
+//        //Writing to Car Rental
+//        try {
+//            writeCarRentalRecord = new PrintWriter(fileArray[0]);
+//
+//        }catch (FileNotFoundException e){
+//            System.out.println("Could not open " + fileArray[0] + " for writing. We will delete all the created output files, close all opened input files and exit program.");
+//            writeCarRentalRecord.close();
+//            System.exit(0);
+//        }
+//
+//        //Writing to Car Maintenance
+//        try {
+//            writeCarMaintenanceRecord = new PrintWriter(fileArray[1]);
+//
+//        }catch (FileNotFoundException e){
+//            System.out.println("Could not open " + fileArray[1] + " for writing. We will delete all the created output files, close all opened input files and exit program.");
+//            writeCarRentalRecord.close();
+//            writeCarMaintenanceRecord.close();
+//            System.exit(0);
+//        }
+//
+//        PrintWriter[] writeArray = {writeCarRentalRecord, writeCarMaintenanceRecord};
 
-        //Reading Car rental and Car Maintenance
-        for (int i = 0; i < readArray.length; i++) {
-            try {
-                readArray[i] = new Scanner(fileArray[i]);
-            } catch (FileNotFoundException e) {
-                System.out.println("Could not open input file " + fileArray[i] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
-                //closing all previews opened files
-                for (int j = 0; j < i; j++) {
-                    readArray[j].close();
-                }
-                System.exit(0);
-            }
-        }
 
-        //Writing to Car Rental and Car Maintenance
-        for (int i = 0; i < writeArray.length; i++) {
-            try {
-                writeArray[i] = new PrintWriter(fileArray[i]);
-            } catch (FileNotFoundException e) {
-                System.out.println("Could not open " + fileArray[i] + " for writing. We will delete all the created output files, close all opened input files and exit program.");
-                for (int j = 0; j < i; j++) {
-                    writeArray[j].close();
-                }
-                System.exit(0);
-            }
-        }
-
-        processFilesForValidation(readCarRentalRecord,writeCarRentalRecord,CarRentalRecord, writeLogFile, logFile);
-        processFilesForValidation(readCarMaintenanceRecord,writeCarMaintenanceRecord,CarMaintenanceRecord, writeLogFile, logFile);
+        processFilesForValidation(readCarRentalRecord,CarRentalRecord, writeLogFile, logFile);
+        processFilesForValidation(readCarMaintenanceRecord,CarMaintenanceRecord, writeLogFile, logFile);
 
 
 
@@ -70,14 +85,16 @@ public class CSV2JSON {
 
 
     public static Tokenizer[] CreateTokenizerArray(Scanner read) {
-        //I dont' wanna count the first one.
-        int count=-1;
+
+        int count=0;
         while (read.hasNextLine()){
-           String str = read.nextLine();
+            read.nextLine();
             count++;
         }
+        System.out.println(count);
 
-        Tokenizer[] temp = new Tokenizer[count];
+        Tokenizer[] temp = new Tokenizer[count-1];
+
         int i=0;
         while (read.hasNextLine()){
             String str = read.nextLine();
@@ -113,7 +130,7 @@ public class CSV2JSON {
 
 
     //    Processing input files and creating output ones
-    public static void processFilesForValidation(Scanner read, PrintWriter write,File file, PrintWriter writeLogFile, File logFile) {
+    public static void processFilesForValidation(Scanner read,File file, PrintWriter writeLogFile, File logFile) {
 
         //Create tokenizer Array for Car Rental/Car Maintenance
         Tokenizer[] TokenizerArray;
@@ -126,8 +143,9 @@ public class CSV2JSON {
                 writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
                 throw new InvalidException();
             }
-            else   //VALID......................
-
+            else {
+                File jsonFile = new File(file.getName()+".json");
+            }
         }catch (InvalidException e){
             System.out.println(e);
         }
@@ -146,45 +164,5 @@ public class CSV2JSON {
             e.printStackTrace();
             System.exit(0);
         }
-
-
-
     }
-
-
-//    public static int[] cleanArray (int[] longIndexOfWordsWithDoubleQuotes){
-//        int count = 0;
-//        for (int i = 0; i < longIndexOfWordsWithDoubleQuotes.length; i++) {
-//            if (longIndexOfWordsWithDoubleQuotes[i] !=0 )
-//                count++;
-//        }
-//
-//        int[] tempArray = new int[count];
-//
-//        for (int i = 0; i < tempArray.length; i++) {
-//            for (int j = 0; j < longIndexOfWordsWithDoubleQuotes.length; j++) {
-//                if (longIndexOfWordsWithDoubleQuotes[j] != 0){
-//                    tempArray[i] = longIndexOfWordsWithDoubleQuotes[j];
-//                }
-//            }
-//        }
-//        return tempArray;
-//    }
-//
-//
-//    public static String[] generateFinalDataLine(int[] shortIndexOfWordsWithDoubleQuotes, String[] wordDataLine){
-//        int oldLength = wordDataLine.length;
-//        int newLength = oldLength;
-//
-//
-//        for (int i = 0; i < (shortIndexOfWordsWithDoubleQuotes.length/2); i+=2) {
-//            newLength = newLength - ( shortIndexOfWordsWithDoubleQuotes[i+1] - shortIndexOfWordsWithDoubleQuotes[i]);
-//        }
-//        String[] finalDataLine = new String[newLength];
-//
-//
-//
-//    }
-
-
 }
