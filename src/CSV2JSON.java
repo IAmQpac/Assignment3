@@ -1,19 +1,20 @@
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.io.*;
 
 public class CSV2JSON {
     public static void main(String[] args) {
 
-        File CarRentalRecord = new File("Car Rental Record.csv");
-        File CarMaintenanceRecord = new File("Car Maintenance Record.csv");
+        File CarRentalRecord = new File("Car Rental Record.txt");
+        File CarMaintenanceRecord = new File("Car Maintenance Record.txt");
         File logFile = new File("log.txt");
 
 
         Scanner readLogFile = null;
         PrintWriter writeLogFile = null;
         try {
-            readLogFile = new Scanner(logFile);
             writeLogFile = new PrintWriter(logFile);
+            readLogFile = new Scanner(logFile);
         } catch (FileNotFoundException e) {
             System.out.println("Could not find the log file");
         }
@@ -45,35 +46,7 @@ public class CSV2JSON {
             System.exit(0);
         }
 
-        Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
-
-
-        //WRITE
-        PrintWriter writeCarRentalRecord = null;
-        PrintWriter writeCarMaintenanceRecord = null;
-
-//        //Writing to Car Rental
-//        try {
-//            writeCarRentalRecord = new PrintWriter(fileArray[0]);
-//
-//        }catch (FileNotFoundException e){
-//            System.out.println("Could not open " + fileArray[0] + " for writing. We will delete all the created output files, close all opened input files and exit program.");
-//            writeCarRentalRecord.close();
-//            System.exit(0);
-//        }
-//
-//        //Writing to Car Maintenance
-//        try {
-//            writeCarMaintenanceRecord = new PrintWriter(fileArray[1]);
-//
-//        }catch (FileNotFoundException e){
-//            System.out.println("Could not open " + fileArray[1] + " for writing. We will delete all the created output files, close all opened input files and exit program.");
-//            writeCarRentalRecord.close();
-//            writeCarMaintenanceRecord.close();
-//            System.exit(0);
-//        }
-//
-//        PrintWriter[] writeArray = {writeCarRentalRecord, writeCarMaintenanceRecord};
+//        Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
 
 
         processFilesForValidation(readCarRentalRecord,CarRentalRecord, writeLogFile, logFile);
@@ -84,27 +57,18 @@ public class CSV2JSON {
     }
 
 
-    public static Tokenizer[] CreateTokenizerArray(Scanner read) {
+    public static ArrayList<Tokenizer> CreateTokenizerArray(Scanner read) {
 
-        int count=0;
-        while (read.hasNextLine()){
-            read.nextLine();
-            count++;
-        }
-        System.out.println(count);
+        ArrayList<Tokenizer> temp = new ArrayList<>();
 
-        Tokenizer[] temp = new Tokenizer[count-1];
-
-        int i=0;
         while (read.hasNextLine()){
             String str = read.nextLine();
-            temp[i] = new Tokenizer(str);
-            i++;
+            temp.add(new Tokenizer(str));
         }
 
-        for (int j = 0; j < temp.length; j++) {
-            String[] record = temp[i].record;
-            temp[i].fixRecord(record);
+        for (int i = 0; i < temp.toArray().length; i++) {
+            String[] record = temp.get(i).record;
+            temp.get(i).fixRecord(record);
         }
         return temp;
     }
@@ -128,13 +92,19 @@ public class CSV2JSON {
     }
 
 
-
     //    Processing input files and creating output ones
     public static void processFilesForValidation(Scanner read,File file, PrintWriter writeLogFile, File logFile) {
 
         //Create tokenizer Array for Car Rental/Car Maintenance
-        Tokenizer[] TokenizerArray;
-        TokenizerArray = CreateTokenizerArray(read);
+        Tokenizer[] tokenizerArray;
+        tokenizerArray = CreateTokenizerArray(read).toArray(new Tokenizer[0]);
+
+        PrintWriter writeJSON = null;
+        try {
+            writeJSON=new PrintWriter(file.getName().replace(".txt", ".json"));
+        }catch (FileNotFoundException e){
+            System.out.println("No json files were found");
+        }
 
 
         //Checking if we miss any attributes:
@@ -143,26 +113,30 @@ public class CSV2JSON {
                 writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
                 throw new InvalidException();
             }
-            else {
-                File jsonFile = new File(file.getName()+".json");
-            }
         }catch (InvalidException e){
             System.out.println(e);
         }
 
         //Checking if we miss any data in Car Rental/Car Maintenance:
+        writeJSON.println("[");
         try{
-            for (int i = 0; i < TokenizerArray.length; i++) {
-                for (int j = 0; j < TokenizerArray[i].record.length; j++) {
-                    if (TokenizerArray[i].record[j].equals("")){
+            for (int i = 0; i < tokenizerArray.length; i++) {
+                for (int j = 0; j < tokenizerArray[i].record.length; j++) {
+                    if (tokenizerArray[i].record[j].equals("")){
+                        //writing to log file missing record.
                         writeLogFile.println(">Missing record: in " + file);
                         throw new InvalidException("There is record missing in "+ file +", we will transfer the rest of the records to JSON.");
+                    }else {
+                        writeJSON.println("{");
+                        writeJSON.println("\" "+ tokenizerArray[0].record[j] + ": " + tokenizerArray[i].record[j] +" \"");
+                        writeJSON.println("},");
                     }
                 }
             }
         } catch (InvalidException e) {
             e.printStackTrace();
-            System.exit(0);
         }
     }
+
+
 }

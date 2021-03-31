@@ -23,21 +23,6 @@ public class Tokenizer {
             }
         }
         return temp;
-
     }
 
-    public String[] removeEmptyStrings(String[] temp){
-        int count = 0;
-        for (int i = 0; i < temp.length; i++) {
-
-            if (temp[i] != null)
-                count++;
-        }
-        String[] noEmptyStrings = new String[count];
-        for (int i = 0; i < noEmptyStrings.length; i++) {
-            noEmptyStrings[i] = temp[i];
-        }
-        return noEmptyStrings;
-
-    }
 }
