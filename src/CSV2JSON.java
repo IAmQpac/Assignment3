@@ -66,9 +66,9 @@ public class CSV2JSON {
             temp.add(new Tokenizer(str));
         }
 
-        for (int i = 0; i < temp.toArray().length; i++) {
-            String[] record = temp.get(i).record;
-            temp.get(i).fixRecord(record);
+        // i=1 to skip attributes
+        for (int i = 1; i < temp.toArray().length; i++) {
+            temp.get(i).splitRecord();
         }
         return temp;
     }
@@ -76,8 +76,10 @@ public class CSV2JSON {
 
 
 
-    public static boolean missingAttribute(Scanner readFile) {
-        String attributesLine = readFile.nextLine();
+    public static boolean missingAttribute(File file) throws FileNotFoundException {
+        Scanner temp = new Scanner(file);
+
+        String attributesLine = temp.nextLine();
         String[] attributesWords = attributesLine.split(",");
         int count=0;
 
@@ -95,47 +97,48 @@ public class CSV2JSON {
     //    Processing input files and creating output ones
     public static void processFilesForValidation(Scanner read,File file, PrintWriter writeLogFile, File logFile) {
 
-        //Create tokenizer Array for Car Rental/Car Maintenance
-        Tokenizer[] tokenizerArray;
-        tokenizerArray = CreateTokenizerArray(read).toArray(new Tokenizer[0]);
+        ArrayList<Tokenizer> tokenizer = CreateTokenizerArray(read);
+
+
+//        //Create tokenizer Array for Car Rental/Car Maintenance
+//        Tokenizer[] tokenizer;
+//        tokenizer = CreateTokenizerArray(read).toArray(new Tokenizer[0]);
+
 
         PrintWriter writeJSON = null;
         try {
-            writeJSON=new PrintWriter(file.getName().replace(".txt", ".json"));
+            writeJSON = new PrintWriter(file.getName().replace(".txt", ".json"));
         }catch (FileNotFoundException e){
             System.out.println("No json files were found");
+            return;
         }
-
 
         //Checking if we miss any attributes:
         try{
-            if (missingAttribute(read) == true){
+            if (missingAttribute(file) == true){
                 writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
                 throw new InvalidException();
             }
-        }catch (InvalidException e){
+        }catch (InvalidException | FileNotFoundException e){
             System.out.println(e);
         }
 
         //Checking if we miss any data in Car Rental/Car Maintenance:
         writeJSON.println("[");
-        try{
-            for (int i = 0; i < tokenizerArray.length; i++) {
-                for (int j = 0; j < tokenizerArray[i].record.length; j++) {
-                    if (tokenizerArray[i].record[j].equals("")){
+            for (int i = 1; i < tokenizer.toArray().length; i++) {
+                for (int j = 0; j < tokenizer.get(0).record.length; j++) {
+                    if (tokenizer.get(i).record[j].equals("")){
                         //writing to log file missing record.
                         writeLogFile.println(">Missing record: in " + file);
-                        throw new InvalidException("There is record missing in "+ file +", we will transfer the rest of the records to JSON.");
+                        System.out.println("There is record missing in "+ file +", we will transfer the rest of the records to JSON.");
                     }else {
                         writeJSON.println("{");
-                        writeJSON.println("\" "+ tokenizerArray[0].record[j] + ": " + tokenizerArray[i].record[j] +" \"");
+                        writeJSON.println("\" "+ tokenizer.get(0).record[j] + " \"" + ": " + tokenizer.get(i).record[j] +" \"");
                         writeJSON.println("},");
                     }
                 }
             }
-        } catch (InvalidException e) {
-            e.printStackTrace();
-        }
+        writeJSON.println("]");
     }
 
 

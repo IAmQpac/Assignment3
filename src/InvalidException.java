@@ -1,6 +1,4 @@
 public class InvalidException extends Exception{
-    String message;
-
 
     // default constructor
     public InvalidException(){
