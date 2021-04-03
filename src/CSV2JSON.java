@@ -7,6 +7,8 @@ public class CSV2JSON {
 
         File CarRentalRecord = new File("Car Rental Record.txt");
         File CarMaintenanceRecord = new File("Car Maintenance Record.txt");
+        File CarRentalNoDriv = new File("Car Rental Record no DrivLic.txt");
+        File CarRentalNoPlate= new File("Car Rental Record no Plate.txt");
         File logFile = new File("log.txt");
 
 
@@ -19,12 +21,14 @@ public class CSV2JSON {
             System.out.println("Could not find the log file");
         }
 
-        File[] fileArray = {CarRentalRecord, CarMaintenanceRecord};
+        File[] fileArray = {CarRentalRecord, CarMaintenanceRecord, CarRentalNoDriv, CarRentalNoPlate};
 
 
         //READ
         Scanner readCarRentalRecord = null;
         Scanner readCarMaintenanceRecord = null;
+        Scanner readCarRentalNoDriv = null;
+        Scanner readCarRentalNoPlate = null;
 
         //Reading Car rental
         try {
@@ -46,11 +50,39 @@ public class CSV2JSON {
             System.exit(0);
         }
 
+        try {
+            readCarRentalNoDriv = new Scanner(fileArray[2]);
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not open input file " + fileArray[2] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
+            //closing all previews opened files
+            readCarRentalNoDriv.close();
+            readCarMaintenanceRecord.close();
+            readCarRentalRecord.close();
+            System.exit(0);
+        }
+
+        try {
+            readCarRentalNoPlate = new Scanner(fileArray[3]);
+        } catch (FileNotFoundException e) {
+            System.out.println("Could not open input file " + fileArray[3] + " for reading. Please check if file exists! Program will terminate after closing any opened files");
+            //closing all previews opened files
+            readCarMaintenanceRecord.close();
+            readCarRentalNoDriv.close();
+            readCarRentalRecord.close();
+            readCarRentalNoPlate.close();
+            System.exit(0);
+        }
+
+
+
 //        Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
 
 
         processFilesForValidation(readCarRentalRecord,CarRentalRecord, writeLogFile, logFile);
         processFilesForValidation(readCarMaintenanceRecord,CarMaintenanceRecord, writeLogFile, logFile);
+        processFilesForValidation(readCarRentalNoDriv, CarRentalNoDriv, writeLogFile, logFile );
+        processFilesForValidation(readCarRentalNoPlate,CarRentalNoPlate, writeLogFile, logFile);
+
 
 
 
@@ -68,12 +100,10 @@ public class CSV2JSON {
 
         // i=1 to skip attributes
         for (int i = 1; i < temp.toArray().length; i++) {
-            temp.get(i).splitRecord();
+            temp.get(i).record = temp.get(i).splitRecord();
         }
         return temp;
     }
-
-
 
 
     public static boolean missingAttribute(File file) throws FileNotFoundException {
@@ -96,14 +126,7 @@ public class CSV2JSON {
 
     //    Processing input files and creating output ones
     public static void processFilesForValidation(Scanner read,File file, PrintWriter writeLogFile, File logFile) {
-
         ArrayList<Tokenizer> tokenizer = CreateTokenizerArray(read);
-
-
-//        //Create tokenizer Array for Car Rental/Car Maintenance
-//        Tokenizer[] tokenizer;
-//        tokenizer = CreateTokenizerArray(read).toArray(new Tokenizer[0]);
-
 
         PrintWriter writeJSON = null;
         try {
@@ -126,19 +149,39 @@ public class CSV2JSON {
         //Checking if we miss any data in Car Rental/Car Maintenance:
         writeJSON.println("[");
             for (int i = 1; i < tokenizer.toArray().length; i++) {
-                for (int j = 0; j < tokenizer.get(0).record.length; j++) {
+                writeJSON.println("\t{");
+                for (int j = 0; j < tokenizer.get(i).record.length; j++) {
                     if (tokenizer.get(i).record[j].equals("")){
                         //writing to log file missing record.
                         writeLogFile.println(">Missing record: in " + file);
                         System.out.println("There is record missing in "+ file +", we will transfer the rest of the records to JSON.");
                     }else {
-                        writeJSON.println("{");
-                        writeJSON.println("\" "+ tokenizer.get(0).record[j] + " \"" + ": " + tokenizer.get(i).record[j] +" \"");
-                        writeJSON.println("},");
+                        writeJSON.print("\t\t\""+ tokenizer.get(0).record[j] + "\"" + ": ");
+                        if (j == tokenizer.get(0).record.length -1 ){
+                            try {
+                                Integer.parseInt(tokenizer.get(i).record[j]);
+                                writeJSON.println(tokenizer.get(i).record[j]);
+                            }catch (Exception e){
+                                writeJSON.println("\""+ tokenizer.get(i).record[j] +"\"");
+                            }
+                        } else {
+                            try {
+                                Integer.parseInt(tokenizer.get(i).record[j] + ",");
+                                writeJSON.println(tokenizer.get(i).record[j]);
+                            }catch (Exception e){
+                                writeJSON.println("\""+ tokenizer.get(i).record[j] +"\"" + ",");
+                            }
+                        }
                     }
+
                 }
+                if (i == tokenizer.toArray().length - 1){
+                    writeJSON.println("\t}");
+                }else writeJSON.println("\t},");
             }
         writeJSON.println("]");
+        writeJSON.close();
+
     }
 
 

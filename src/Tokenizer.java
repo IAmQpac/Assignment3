@@ -9,24 +9,31 @@ public class Tokenizer {
     }
 
 
-    public ArrayList<String> splitRecord() {
+    public String[] splitRecord() {
         ArrayList<String> temp = new ArrayList<>();
 
         for (int i = 0; i < record.length; i++) {
-            if (record[i].charAt(0)!= '\"'){
+            if (!record[i].startsWith("\"")){
                 temp.add(record[i]);
-            }else if (record[i].charAt(0) == '\"'){
+            }else if (record[i].startsWith("\"")){
                 String firstField = record[i];
                 i++;
-                while (record[i].charAt(record[i].length()-1) != '\"'){
-                    firstField.concat(record[i]);
-                    if (i == record.length-1) break;
-                    else i++;
+                while (!record[i].endsWith("\"")){
+                    firstField = firstField + record[i];
+//                    firstField.concat(record[i]);
+                    i++;
                 }
-                temp.add(record[i]);
+//                DOES NOT WORK
+                firstField.replace("\"", "");
+                temp.add(firstField);
             }
         }
-        return temp;
+        String[] temp2 = new String[temp.toArray().length];
+        for (int i = 0; i < temp2.length; i++) {
+            temp2[i] = temp.get(i);
+
+        }
+        return temp2;
     }
 
 }
