@@ -1,0 +1,6 @@
+In file Car Rental Record no DrivLic.txt line 3
+16/11/2020,Steve,****,Toyota Camry,5KJNR28,210000,211000,1000,
+----
+File Car Rental Record no Plate.txt is invalid.
+Missing Field: 7 detected,1 missing
+Date,Driver's Name,Driver's Licence number,Car Make,****,Meter at the start of trip,Meter at the end of trip,Mileage made,

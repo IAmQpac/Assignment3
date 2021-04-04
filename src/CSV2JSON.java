@@ -50,6 +50,7 @@ public class CSV2JSON {
             System.exit(0);
         }
 
+        //Reading Car Rental No Driv
         try {
             readCarRentalNoDriv = new Scanner(fileArray[2]);
         } catch (FileNotFoundException e) {
@@ -61,6 +62,7 @@ public class CSV2JSON {
             System.exit(0);
         }
 
+        //Reading Car Rental No Plate
         try {
             readCarRentalNoPlate = new Scanner(fileArray[3]);
         } catch (FileNotFoundException e) {
@@ -73,60 +75,48 @@ public class CSV2JSON {
             System.exit(0);
         }
 
-
-
-//        Scanner[] readArray = {readCarRentalRecord, readCarMaintenanceRecord};
-
-
         processFilesForValidation(readCarRentalRecord,CarRentalRecord, writeLogFile, logFile);
         processFilesForValidation(readCarMaintenanceRecord,CarMaintenanceRecord, writeLogFile, logFile);
         processFilesForValidation(readCarRentalNoDriv, CarRentalNoDriv, writeLogFile, logFile );
         processFilesForValidation(readCarRentalNoPlate,CarRentalNoPlate, writeLogFile, logFile);
-
-
-
-
     }
 
 
-    public static ArrayList<Tokenizer> CreateTokenizerArray(Scanner read) {
-
+    public static ArrayList<Tokenizer> CreateTokenizerArray(Scanner read, File file) {
         ArrayList<Tokenizer> temp = new ArrayList<>();
 
         while (read.hasNextLine()){
             String str = read.nextLine();
-            temp.add(new Tokenizer(str));
+            Tokenizer token = new Tokenizer(str);
+            temp.add(token);
         }
 
-        // i=1 to skip attributes
-        for (int i = 1; i < temp.toArray().length; i++) {
+
+
+        //Checks for missing fields AND missing Attributes
+        for (int i = 0; i < temp.toArray().length; i++) {
+            for (int j = 0; j < temp.get(i).record.length; j++) {
+                if (temp.get(i).record[j] == ""){
+                    temp.get(i).missingField = true;
+                    temp.get(i).missingIndex.add(j);
+                }
+            }
+        }
+
+        for (int i = 0; i < temp.toArray().length; i++) {
             temp.get(i).record = temp.get(i).splitRecord();
         }
+
         return temp;
     }
 
 
-    public static boolean missingAttribute(File file) throws FileNotFoundException {
-        Scanner temp = new Scanner(file);
 
-        String attributesLine = temp.nextLine();
-        String[] attributesWords = attributesLine.split(",");
-        int count=0;
-
-        for (int i = 0; i < attributesWords.length; i++) {
-            if (attributesWords[i] == ""){
-                count++;
-            }
-        }
-        if (count > 0 ){
-            return  true;
-        }else return false;
-    }
 
 
     //    Processing input files and creating output ones
     public static void processFilesForValidation(Scanner read,File file, PrintWriter writeLogFile, File logFile) {
-        ArrayList<Tokenizer> tokenizer = CreateTokenizerArray(read);
+        ArrayList<Tokenizer> tokenizer = CreateTokenizerArray(read, file);
 
         PrintWriter writeJSON = null;
         try {
@@ -136,27 +126,56 @@ public class CSV2JSON {
             return;
         }
 
-        //Checking if we miss any attributes:
-        try{
-            if (missingAttribute(file) == true){
-                writeLogFile.println(logFile + "is invalid: Field is missing. \nFile will not be converted to JSON");
-                throw new InvalidException();
+        //missing attributes
+        if (tokenizer.get(0).missingField){
+            System.out.println("----");
+            System.out.println(file + " is invalid: Field is missing. \nFile will not be converted to JSON");
+            System.out.println("----");
+            writeLogFile.println("----");
+            writeLogFile.println("File " + file + " is invalid.");
+
+            writeLogFile.print("Missing Field: " + ((tokenizer.get(0).record.length) - (tokenizer.get(0).missingIndex.toArray().length)) + " detected," );
+            writeLogFile.println( ((tokenizer.get(0).missingIndex.toArray().length)  + " missing" ));
+
+
+            for (int i = 0; i < tokenizer.get(0).record.length; i++) {
+                if (tokenizer.get(0).record[i].equals("")){
+                    writeLogFile.print("****,");
+                }else writeLogFile.print(tokenizer.get(0).record[i] + ",");
             }
-        }catch (InvalidException | FileNotFoundException e){
-            System.out.println(e);
+            writeLogFile.close();
         }
 
-        //Checking if we miss any data in Car Rental/Car Maintenance:
-        writeJSON.println("[");
-            for (int i = 1; i < tokenizer.toArray().length; i++) {
-                writeJSON.println("\t{");
+        //missing data
+        for (int i = 1; i < tokenizer.toArray().length; i++) {
+            if (tokenizer.get(i).missingField){
+                System.out.println("----");
+                System.out.println("In file " + file + " line " + (i+1) + " not converted to JSON: Missing data");
+                System.out.println("We will transfer the rest of the records to JSON.");
+                writeLogFile.println("In file " + file + " line " + (i+1));
+                System.out.println("----");
                 for (int j = 0; j < tokenizer.get(i).record.length; j++) {
                     if (tokenizer.get(i).record[j].equals("")){
-                        //writing to log file missing record.
-                        writeLogFile.println(">Missing record: in " + file);
-                        System.out.println("There is record missing in "+ file +", we will transfer the rest of the records to JSON.");
-                    }else {
+                        writeLogFile.print("****,");
+                    }else writeLogFile.print(tokenizer.get(i).record[j] + ",");
+                }
+                writeLogFile.println("");
+            }
+        }
+
+
+        //printing to json
+        if (!tokenizer.get(0).missingField){
+            writeJSON.println("[");
+            //for all records (row)
+            for (int i = 1; i < tokenizer.toArray().length; i++) {
+                writeJSON.println("\t{");
+                //for all fields
+                for (int j = 0; j < tokenizer.get(i).record.length; j++) {
+                    if (!tokenizer.get(i).record[j].equals("")){
                         writeJSON.print("\t\t\""+ tokenizer.get(0).record[j] + "\"" + ": ");
+
+
                         if (j == tokenizer.get(0).record.length -1 ){
                             try {
                                 Integer.parseInt(tokenizer.get(i).record[j]);
@@ -166,12 +185,13 @@ public class CSV2JSON {
                             }
                         } else {
                             try {
-                                Integer.parseInt(tokenizer.get(i).record[j] + ",");
-                                writeJSON.println(tokenizer.get(i).record[j]);
+                                Integer.parseInt(tokenizer.get(i).record[j]);
+                                writeJSON.println(tokenizer.get(i).record[j] + ",");
                             }catch (Exception e){
                                 writeJSON.println("\""+ tokenizer.get(i).record[j] +"\"" + ",");
                             }
                         }
+
                     }
 
                 }
@@ -179,8 +199,11 @@ public class CSV2JSON {
                     writeJSON.println("\t}");
                 }else writeJSON.println("\t},");
             }
-        writeJSON.println("]");
-        writeJSON.close();
+            writeJSON.println("]");
+            writeJSON.close();
+
+        }
+
 
     }
 
